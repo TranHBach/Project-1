@@ -20,7 +20,7 @@ void mask_image(unsigned char *image, int width, int height, int channel)
             // if (image[location] <= 150 && image[location + 1] >= 200 && image[location + 2] <= 150)
             if (image[location + 1] * 1.5 >= (image[location] + image[location + 2]))
             {
-                for (int k = 0; k < channel; k++)
+                for (int k = 0; k < channel-1; k++)
                 {
                     image[location + k] = 0;
                 }
@@ -29,18 +29,19 @@ void mask_image(unsigned char *image, int width, int height, int channel)
     }
 }
 
-void combine_image(unsigned char *image, unsigned char *mask, int width, int height, int channel) {
+void combine_image(unsigned char *image, unsigned char *mask, int width, int height, int channel, int m_width, int m_height, int m_channel) {
     for (int i = 0; i < height; i++)
     {
         for (int j = 0; j < width; j++)
         {
-            int location = i * width * channel + j * channel;
+            int i_location = i * width * channel + j * channel;
+            int m_location = i * m_width * m_channel + j * m_channel;
             // if (image[location] <= 150 && image[location + 1] >= 200 && image[location + 2] <= 150)
-            if (mask[location] != 0 && mask[location + 1] != 0 && mask[location + 2] != 0)
+            if (mask[m_location] != 0 && mask[m_location + 1] != 0 && mask[m_location + 2] != 0)
             {
                 for (int k = 0; k < channel; k++)
                 {
-                    image[location + k] = mask[location + k];
+                    image[i_location + k] = mask[m_location + k];
                 }
             }
         }
@@ -50,25 +51,32 @@ void combine_image(unsigned char *image, unsigned char *mask, int width, int hei
 int main()
 {
     int width, height, channel;
-    int temp1, temp2, temp3;
-    char path_img[] = "./images/98239648_p0.png";
-    char save_path[] = "./images/98239648_p0_new.png";
+    int m_width, m_height, m_channel;
+    char path_img[] = "./images/weather_forecast.jpg";
+    char save_path[] = "./images/weather_forecast_new.jpg";
 
-    char green_screen_img[] = "./images/good_green_screen.jpg";
+    char green_screen_img[] = "./images/woman_in_greenscreen.png";
 
     unsigned char *image = stbi_load(path_img, &width, &height, &channel, 0);
 
     // Both have same size so we can ignore the image info
-    unsigned char *mask = stbi_load(green_screen_img, &temp1, &temp2, &temp3, 0);
+    unsigned char *mask = stbi_load(green_screen_img, &m_width, &m_height, &m_channel, 0);
 
+    // Size of mask
+    printf("%d %d %d\n", m_width, m_height, m_channel);
+
+    // Size of image
     printf("%d %d %d\n", width, height, channel);
 
-    mask_image(mask, width, height, channel);
+    // Removing green screen
+    mask_image(mask, m_width, m_height, m_channel);
     printf("Finish masking\n");
 
-    combine_image(image, mask, width, height, channel);
+    // Combining the mask and image
+    combine_image(image, mask, width, height, channel, m_width, m_height, m_channel);
     printf("Finish combining\n");
 
+    // Write image
     stbi_write_png(save_path, width, height, channel, image, width * channel);
     printf("Finished");
 
